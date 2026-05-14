@@ -3,6 +3,8 @@ import { useState } from "react";
 
 // Shared login
 import Login from "./pages/auth/Login";
+import Signup from "./pages/auth/Signup";
+import Forget from "./pages/auth/Forget";
 
 // Scientist pages
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -156,6 +158,16 @@ export default function App() {
           element={loginRedirect()}
         />
 
+        {/*Signup*/}
+        <Route path="/signup" element={<Signup />} />
+
+
+        {/*Forget password*/}
+        <Route
+          path="/forget-password"
+          element={<Forget />}
+        />
+
         {/* Scientist */}
         <Route
           path="/dashboard"
@@ -186,49 +198,49 @@ export default function App() {
 
         {/* Admin */}
         <Route
-  path="/admin"
-  element={
-    adminGuard(
-      <AdminDashboard onLogout={handleLogout} />
-    )
-  }
-/>
+          path="/admin"
+          element={
+            adminGuard(
+              <AdminDashboard onLogout={handleLogout} />
+            )
+          }
+        />
 
-<Route
-  path="/admin/users"
-  element={
-    adminGuard(
-      <UserManagement onLogout={handleLogout} />
-    )
-  }
-/>
+        <Route
+          path="/admin/users"
+          element={
+            adminGuard(
+              <UserManagement onLogout={handleLogout} />
+            )
+          }
+        />
 
-<Route
-  path="/admin/proposals"
-  element={
-    adminGuard(
-      <ProposalManagement onLogout={handleLogout} />
-    )
-  }
-/>
+        <Route
+          path="/admin/proposals"
+          element={
+            adminGuard(
+              <ProposalManagement onLogout={handleLogout} />
+            )
+          }
+        />
 
-<Route
-  path="/admin/proposals/:id"
-  element={
-    adminGuard(
-      <ProposalDetails onLogout={handleLogout} />
-    )
-  }
-/>
+        <Route
+          path="/admin/proposals/:id"
+          element={
+            adminGuard(
+              <ProposalDetails onLogout={handleLogout} />
+            )
+          }
+        />
 
-<Route
-  path="/admin/assignments"
-  element={
-    adminGuard(
-      <ReviewerAssignment onLogout={handleLogout} />
-    )
-  }
-/>
+        <Route
+          path="/admin/assignments"
+          element={
+            adminGuard(
+              <ReviewerAssignment onLogout={handleLogout} />
+            )
+          }
+        />
         {/* Reviewer */}
         <Route
           path="/reviewer/dashboard"

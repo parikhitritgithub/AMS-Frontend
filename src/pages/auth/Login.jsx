@@ -1,13 +1,17 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Layers, Users, Shield } from "lucide-react";
 import logo from "../../assets/AMSlogo.png";
 import toast from "react-hot-toast";
 
+
 export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail]               = useState("");
-  const [password, setPassword]         = useState("");
-  const [loading, setLoading]           = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -25,17 +29,24 @@ export default function Login({ onLogin }) {
         }
       );
       const data = await response.json();
+      console.log("LOGIN RESPONSE =", data);
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
       }
 
       // Store auth data
-      localStorage.setItem("token", data.token);
+      const token =
+        data.token ||
+        data.accessToken;
+
+      console.log("SAVING TOKEN =", token);
+
+      localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
       toast.success("Login successful");
       onLogin(data, data.user?.role);
-      
+
     } catch (error) {
       console.error("Login Error:", error);
       toast.error(error.message || "Something went wrong");
@@ -67,8 +78,8 @@ export default function Login({ onLogin }) {
           <div className="space-y-10 text-lg text-gray-200">
             {[
               { icon: Layers, label: "Smart Research Workflow" },
-              { icon: Users,  label: "Collaborative Review"   },
-              { icon: Shield, label: "Similarity Detection"   },
+              { icon: Users, label: "Collaborative Review" },
+              { icon: Shield, label: "Similarity Detection" },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-4">
                 <Icon size={28} /><p>{label}</p>
@@ -97,7 +108,12 @@ export default function Login({ onLogin }) {
 
           <div className="flex justify-between text-sm text-gray-500">
             <label>Password</label>
-            <span className="text-blue-500 cursor-pointer">Forgot?</span>
+            <Link
+              to="/forget-password"
+              className="text-blue-500 cursor-pointer hover:underline"
+            >
+              Forgot?
+            </Link>
           </div>
           <div className="relative mt-1 mb-4">
             <input
@@ -120,18 +136,22 @@ export default function Login({ onLogin }) {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className={`w-full py-2 rounded text-white font-semibold transition ${
-              loading
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            className={`w-full py-2 rounded text-white font-semibold transition ${loading
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+              }`}
           >
             {loading ? "Logging in…" : "Login now"}
           </button>
 
           <p className="text-center text-sm text-gray-400 mt-4">
             Don't Have An Account?{" "}
-            <span className="text-blue-500 cursor-pointer">Sign Up</span>
+            <span
+              onClick={() => navigate("/signup")}
+              className="text-blue-500 cursor-pointer"
+            >
+              Sign Up
+            </span>
           </p>
         </div>
       </div>
