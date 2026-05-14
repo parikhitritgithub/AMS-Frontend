@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import ProposalManagement from "./pages/admin/ProposalManagement";
 import ReviewerAssignment from "./pages/admin/ReviewerAssignment";
+import ProposalDetails from "./components/proposal/ProposalDetails";
 
 // Reviewer pages
 import ReviewerDashboard from "./pages/reviewer pages/ReviewerDashboard";
@@ -185,41 +186,49 @@ export default function App() {
 
         {/* Admin */}
         <Route
-          path="/admin"
-          element={
-            adminGuard(
-              <AdminDashboard onLogout={handleLogout} />
-            )
-          }
-        />
+  path="/admin"
+  element={
+    adminGuard(
+      <AdminDashboard onLogout={handleLogout} />
+    )
+  }
+/>
 
-        <Route
-          path="/admin/users"
-          element={
-            adminGuard(
-              <UserManagement onLogout={handleLogout} />
-            )
-          }
-        />
+<Route
+  path="/admin/users"
+  element={
+    adminGuard(
+      <UserManagement onLogout={handleLogout} />
+    )
+  }
+/>
 
-        <Route
-          path="/admin/proposals"
-          element={
-            adminGuard(
-              <ProposalManagement onLogout={handleLogout} />
-            )
-          }
-        />
+<Route
+  path="/admin/proposals"
+  element={
+    adminGuard(
+      <ProposalManagement onLogout={handleLogout} />
+    )
+  }
+/>
 
-        <Route
-          path="/admin/assignments"
-          element={
-            adminGuard(
-              <ReviewerAssignment onLogout={handleLogout} />
-            )
-          }
-        />
+<Route
+  path="/admin/proposals/:id"
+  element={
+    adminGuard(
+      <ProposalDetails onLogout={handleLogout} />
+    )
+  }
+/>
 
+<Route
+  path="/admin/assignments"
+  element={
+    adminGuard(
+      <ReviewerAssignment onLogout={handleLogout} />
+    )
+  }
+/>
         {/* Reviewer */}
         <Route
           path="/reviewer/dashboard"
