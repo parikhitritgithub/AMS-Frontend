@@ -88,7 +88,8 @@ function InfoCard({ title, icon: Icon, children, className = "" }) {
 export default function ProposalDetails({ proposal, onBack }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [resubmitting, setResubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const shouldShowReviewer = ["UNDER_REVIEW", "APPROVED", "REJECTED", "REVISION_REQUIRED"].includes(proposal.status);
@@ -98,12 +99,100 @@ export default function ProposalDetails({ proposal, onBack }) {
   const handleEdit = () => {
     setIsEditing(true);
     setEditedProposal(proposal);
+    setError("");
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedProposal(proposal);
     setError("");
+  };
+
+  // Save changes only (does NOT change status)
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError("");
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.patch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/projects/update/${proposal.id}`,
+        editedProposal,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      toast.success("Changes saved successfully!");
+      
+      // Update the proposal with the response data
+      setEditedProposal(response.data.project);
+      setIsEditing(false);
+      
+      // Refresh the page to show updated data
+      setTimeout(() => window.location.reload(), 1000);
+      
+    } catch (error) {
+      console.error("Save error:", error);
+      setError(error.response?.data?.message || "Failed to save changes");
+      toast.error("Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Save AND Resubmit (changes status to SUBMITTED or UNDER_REVIEW)
+  const handleSaveAndResubmit = async () => {
+    // Validate required fields
+    if (!editedProposal.title || !editedProposal.introduction || !editedProposal.actionPlan || !editedProposal.expectedOutcome) {
+      toast.error("Please fill all required fields before resubmitting");
+      return;
+    }
+    
+    if (!editedProposal.objectives || editedProposal.objectives.length === 0) {
+      toast.error("At least one objective is required");
+      return;
+    }
+    
+    if (!editedProposal.stationOrCollege) {
+      toast.error("Station/College is required");
+      return;
+    }
+    
+    if (!editedProposal.discipline) {
+      toast.error("Discipline is required");
+      return;
+    }
+    
+    try {
+      setResubmitting(true);
+      setError("");
+      const token = localStorage.getItem("token");
+      
+      // First, save the updated changes
+      await axios.patch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/projects/update/${proposal.id}`,
+        editedProposal,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Then, resubmit for review
+      const response = await axios.patch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/projects/resubmit/${proposal.id}`,
+        { keepSameReviewer: true }, // Can be changed based on user preference
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      toast.success("Proposal resubmitted successfully!");
+      
+      // Refresh the page to show updated status
+      setTimeout(() => window.location.reload(), 1500);
+      
+    } catch (error) {
+      console.error("Resubmit error:", error);
+      setError(error.response?.data?.message || "Failed to resubmit proposal");
+      toast.error(error.response?.data?.message || "Failed to resubmit proposal");
+    } finally {
+      setResubmitting(false);
+    }
   };
 
   const handleInputChange = (field, value) => {
@@ -146,34 +235,6 @@ export default function ProposalDetails({ proposal, onBack }) {
         [field]: parseFloat(value) || 0
       }
     }));
-  };
-
-  const handleResubmit = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const token = localStorage.getItem("token");
-      
-      await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL}/api/scientist/project/${proposal.id}`,
-        editedProposal,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      await axios.patch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/scientist/project/${proposal.id}/submit`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      toast.success("Proposal resubmitted successfully!");
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (error) {
-      setError(error.response?.data?.message || "Failed to resubmit proposal");
-      toast.error("Failed to resubmit proposal");
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -253,7 +314,7 @@ export default function ProposalDetails({ proposal, onBack }) {
             {isEditing ? (
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Project Title</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Project Title *</label>
                   <input
                     type="text"
                     value={editedProposal.title || ""}
@@ -262,7 +323,7 @@ export default function ProposalDetails({ proposal, onBack }) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Discipline</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Discipline *</label>
                   <select
                     value={editedProposal.discipline || ""}
                     onChange={(e) => handleInputChange("discipline", e.target.value)}
@@ -281,7 +342,25 @@ export default function ProposalDetails({ proposal, onBack }) {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Introduction & Rationale</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Station/College *</label>
+                  <input
+                    type="text"
+                    value={editedProposal.stationOrCollege || ""}
+                    onChange={(e) => handleInputChange("stationOrCollege", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Year *</label>
+                  <input
+                    type="number"
+                    value={editedProposal.year || new Date().getFullYear()}
+                    onChange={(e) => handleInputChange("year", parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Introduction & Rationale *</label>
                   <textarea
                     value={editedProposal.introduction || ""}
                     onChange={(e) => handleInputChange("introduction", e.target.value)}
@@ -290,7 +369,7 @@ export default function ProposalDetails({ proposal, onBack }) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Action Plan</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Action Plan *</label>
                   <textarea
                     value={editedProposal.actionPlan || ""}
                     onChange={(e) => handleInputChange("actionPlan", e.target.value)}
@@ -299,7 +378,7 @@ export default function ProposalDetails({ proposal, onBack }) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Expected Outcome</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Expected Outcome *</label>
                   <textarea
                     value={editedProposal.expectedOutcome || ""}
                     onChange={(e) => handleInputChange("expectedOutcome", e.target.value)}
@@ -308,7 +387,7 @@ export default function ProposalDetails({ proposal, onBack }) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Objectives</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Objectives *</label>
                   {(editedProposal.objectives || []).map((obj, index) => (
                     <div key={index} className="flex gap-2 mb-2">
                       <input
@@ -480,14 +559,47 @@ export default function ProposalDetails({ proposal, onBack }) {
             </InfoCard>
           )}
 
-          {/* Edit Actions */}
+          {/* Edit Actions - Two buttons for Save and Save & Resubmit */}
           {isEditing && (
             <div className="flex gap-3">
-              <button onClick={handleResubmit} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50">
-                <Save size={16} />
-                {loading ? "Resubmitting..." : "Resubmit Proposal"}
+              <button 
+                onClick={handleSave} 
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Save Changes
+                  </>
+                )}
               </button>
-              <button onClick={handleCancelEdit} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button 
+                onClick={handleSaveAndResubmit} 
+                disabled={resubmitting}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+              >
+                {resubmitting ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    Resubmitting...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={16} />
+                    Save & Resubmit
+                  </>
+                )}
+              </button>
+              <button 
+                onClick={handleCancelEdit} 
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 Cancel
               </button>
             </div>
