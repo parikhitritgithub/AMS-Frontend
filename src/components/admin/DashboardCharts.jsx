@@ -115,7 +115,7 @@ export default function DashboardCharts({ chartsData }) {
               outerRadius={80}
               dataKey="value"
               labelLine={false}
-              label={({ name, percent }) => percent > 0.05 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+              
             >
               {pieData.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
