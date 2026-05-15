@@ -40,9 +40,9 @@ export default function Sidebar({ onLogout }) {
           <button
             key={label}
             onClick={() => navigate(path)}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all border-l-4 ${
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all border border-transparent ${
               pathname === path
-                ? "bg-blue-600 text-white font-semibold border-blue-300"
+                ? "bg-gradient-to-r from-[#0A84FF] to-[#8FB4CC] text-white font-semibold border border-[#B8D9FF]"
                 : "text-gray-300 hover:bg-white/10 border-transparent"
             }`}
           >
