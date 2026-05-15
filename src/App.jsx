@@ -16,7 +16,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import ProposalManagement from "./pages/admin/ProposalManagement";
 import ReviewerAssignment from "./pages/admin/ReviewerAssignment";
-import ProposalDetails from "./components/proposal/ProposalDetails";
+import AdminProposalDetails from "./components/proposal/AdminProposalDetails";
 
 // Reviewer pages
 import ReviewerDashboard from "./pages/reviewer pages/ReviewerDashboard";
@@ -228,7 +228,7 @@ export default function App() {
           path="/admin/proposals/:id"
           element={
             adminGuard(
-              <ProposalDetails onLogout={handleLogout} />
+              <AdminProposalDetails onLogout={handleLogout} />
             )
           }
         />
