@@ -164,7 +164,7 @@ export default function App() {
 
         {/*Forget password*/}
         <Route
-          path="/forget-password"
+          path="/reset-password"
           element={<Forget />}
         />
 

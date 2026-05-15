@@ -45,6 +45,24 @@ export default function Login({ onLogin }) {
       localStorage.setItem("user", JSON.stringify(data.user));
 
       toast.success("Login successful");
+
+      // If password reset required
+      if (data.user.mustResetPassword) {
+        navigate("/reset-password");
+        return;
+      }
+
+      // Role based redirect
+      if (data.user.role === "ADMIN") {
+        navigate("/admin/dashboard");
+
+      } else if (data.user.role === "REVIEWER") {
+        navigate("/reviewer/dashboard");
+
+      } else {
+        navigate("/dashboard");
+      }
+
       onLogin(data, data.user?.role);
 
     } catch (error) {

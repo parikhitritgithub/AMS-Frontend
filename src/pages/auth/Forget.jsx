@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Eye,
   EyeOff,
@@ -11,12 +11,15 @@ import {
 import logo from "../../assets/AMSlogo.png";
 import toast from "react-hot-toast";
 
-export default function Forget() {
+export default function ResetPassword() {
+  const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
+    confirmPassword: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -29,10 +32,31 @@ export default function Forget() {
   };
 
   const handleResetPassword = async () => {
-    const { currentPassword, newPassword } = formData;
+    const {
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    } = formData;
 
-    if (!currentPassword || !newPassword) {
+    // Validation
+    if (
+      !currentPassword ||
+      !newPassword ||
+      !confirmPassword
+    ) {
       toast.error("Please fill all fields");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error(
+        "Password must be at least 6 characters"
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -64,19 +88,33 @@ export default function Forget() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Reset failed");
+        throw new Error(
+          data.message || "Password reset failed"
+        );
       }
 
-      toast.success("Password updated successfully");
+      toast.success(
+        data.message || "Password updated successfully"
+      );
 
+      // Clear form
       setFormData({
         currentPassword: "",
         newPassword: "",
+        confirmPassword: "",
       });
+
+      // Redirect to login after reset
+      setTimeout(() => {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }, 1500);
 
     } catch (error) {
       console.error(error);
-      toast.error(error.message || "Something went wrong");
+      toast.error(
+        error.message || "Something went wrong"
+      );
     } finally {
       setLoading(false);
     }
@@ -105,11 +143,22 @@ export default function Forget() {
           </p>
 
           <div className="space-y-10 text-lg text-gray-200">
+
             {[
-              { icon: Layers, label: "Smart Research Workflow" },
-              { icon: Users, label: "Collaborative Review" },
-              { icon: Shield, label: "Similarity Detection" },
+              {
+                icon: Layers,
+                label: "Smart Research Workflow",
+              },
+              {
+                icon: Users,
+                label: "Collaborative Review",
+              },
+              {
+                icon: Shield,
+                label: "Secure Authentication",
+              },
             ].map(({ icon: Icon, label }) => (
+
               <div
                 key={label}
                 className="flex items-center gap-4"
@@ -117,7 +166,9 @@ export default function Forget() {
                 <Icon size={28} />
                 <p>{label}</p>
               </div>
+
             ))}
+
           </div>
 
         </div>
@@ -128,7 +179,7 @@ export default function Forget() {
 
         <div className="w-full max-w-sm bg-white shadow-2xl rounded-2xl p-6 sm:p-8">
 
-          <h2 className="text-center text-gray-600 mb-6 text-lg font-semibold">
+          <h2 className="text-center text-gray-700 mb-6 text-2xl font-bold">
             Reset Password
           </h2>
 
@@ -145,7 +196,7 @@ export default function Forget() {
               value={formData.currentPassword}
               onChange={handleChange}
               placeholder="Enter current password"
-              className="w-full p-2 border rounded pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-400"
+              className="w-full p-3 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
 
             <button
@@ -153,7 +204,7 @@ export default function Forget() {
               onClick={() =>
                 setShowPassword(!showPassword)
               }
-              className="absolute right-3 top-2.5 text-gray-400"
+              className="absolute right-3 top-3 text-gray-400"
             >
               {showPassword ? (
                 <EyeOff size={18} />
@@ -175,23 +226,39 @@ export default function Forget() {
             value={formData.newPassword}
             onChange={handleChange}
             placeholder="Enter new password"
-            className="w-full mt-1 mb-4 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-400"
+            className="w-full mt-1 mb-4 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+
+          {/* Confirm Password */}
+          <label className="text-sm text-gray-500">
+            Confirm Password
+          </label>
+
+          <input
+            type={showPassword ? "text" : "password"}
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            placeholder="Confirm new password"
+            className="w-full mt-1 mb-6 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
 
           {/* Button */}
           <button
             onClick={handleResetPassword}
             disabled={loading}
-            className={`w-full py-2 rounded text-white font-semibold transition ${
+            className={`w-full py-3 rounded-lg text-white font-semibold transition ${
               loading
                 ? "bg-blue-400 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            {loading ? "Updating..." : "Reset Password"}
+            {loading
+              ? "Updating..."
+              : "Reset Password"}
           </button>
 
-          <p className="text-center text-sm text-gray-400 mt-4">
+          <p className="text-center text-sm text-gray-400 mt-5">
 
             <Link
               to="/login"
