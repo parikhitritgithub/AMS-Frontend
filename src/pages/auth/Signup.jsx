@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Eye,
   EyeOff,
@@ -36,6 +36,7 @@ export default function Signup({ onSignup }) {
   });
 
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -99,9 +100,12 @@ export default function Signup({ onSignup }) {
 
       toast.success("Account created successfully");
 
-      if (onSignup) {
-        onSignup(data);
-      }
+      localStorage.removeItem("loggedIn");
+      localStorage.removeItem("reviewerLoggedIn");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      navigate("/login");
 
     } catch (error) {
       console.error("Signup Error:", error);
@@ -284,11 +288,10 @@ export default function Signup({ onSignup }) {
           <button
             onClick={handleSignup}
             disabled={loading}
-            className={`w-full py-2 rounded text-white font-semibold transition ${
-              loading
+            className={`w-full py-2 rounded text-white font-semibold transition ${loading
                 ? "bg-blue-400 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
-            }`}
+              }`}
           >
             {loading ? "Creating..." : "Sign Up"}
           </button>
