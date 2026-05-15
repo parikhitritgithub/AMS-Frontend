@@ -4,7 +4,7 @@ export default function RecentProjects({ projects = [] }) {
     return (
       <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700">Recent Projects</h3>
+          <h3 className="text-sm font-semibold text-gray-700">Recent Proposals </h3>
         </div>
         <div className="p-8 text-center">
           <div className="text-gray-400 text-sm">No projects available</div>
