@@ -68,6 +68,7 @@ export default function Step1({ form, update }) {
         value={form.teacherName}
         onChange={update("teacherName")}
         placeholder="Enter your name"
+        disabled
       />
 
       <FormField
