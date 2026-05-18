@@ -6,7 +6,7 @@ import {
   ArrowLeft, CheckCircle, XCircle, Clock, Calendar, User, 
   FileText, DollarSign, Users, TrendingUp, RefreshCw, 
   AlertTriangle, Eye, Trash2, UserPlus, Award, X, 
-  Briefcase, Mail, Star, Search, ChevronLeft, ChevronRight
+  Briefcase, Mail, Star, Search, ChevronLeft, ChevronRight, UserMinus
 } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
@@ -95,7 +95,7 @@ function DeleteModal({ proposal, onClose, onConfirm }) {
 
   const handleConfirm = async () => {
     setLoading(true);
-    await onConfirm(proposal.id);
+    await onConfirm(proposal.id || proposal._id);
     setLoading(false);
   };
 
@@ -131,14 +131,85 @@ function DeleteModal({ proposal, onClose, onConfirm }) {
   );
 }
 
+// Unassign Reviewer Confirmation Modal
+function UnassignReviewerModal({ proposal, reviewer, onClose, onConfirm }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    const projectId = proposal.id || proposal._id;
+    if (!projectId) {
+      toast.error("Invalid project ID");
+      setLoading(false);
+      return;
+    }
+    await onConfirm(projectId);
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Unassign Reviewer</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Are you sure you want to unassign <span className="font-semibold">{reviewer?.name}</span> as the reviewer for:
+          </p>
+          <p className="font-semibold text-gray-800 bg-gray-50 p-3 rounded-lg">
+            "{proposal.title}"
+          </p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-xs text-yellow-700 flex items-center gap-1">
+              <AlertTriangle size={12} />
+              This action will move the proposal back to "Submitted" status and the reviewer will be notified.
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            {loading ? (
+              <>
+                <RefreshCw size={16} className="animate-spin" />
+                Unassigning...
+              </>
+            ) : (
+              <>
+                <UserMinus size={16} />
+                Confirm Unassign
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Confirm Assignment Modal
 function ConfirmAssignmentModal({ reviewer, proposal, onClose, onConfirm }) {
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
     setLoading(true);
-    await onConfirm();
+    const projectId = proposal.id || proposal._id;
+    await onConfirm(projectId, reviewer.id);
     setLoading(false);
+    onClose();
   };
 
   return (
@@ -225,20 +296,6 @@ function AssignReviewerModal({ proposal, reviewers, reviewersTotalPages, reviewe
       return;
     }
     setShowConfirmModal(true);
-  };
-
-  const handleConfirmAssignment = async () => {
-    setLoading(true);
-    const projectId = proposal._id || proposal.id;
-    if (!projectId) {
-      toast.error("Invalid project ID");
-      setLoading(false);
-      return;
-    }
-    await onAssign(projectId, selectedReviewerId);
-    setLoading(false);
-    setShowConfirmModal(false);
-    onClose();
   };
 
   const getPageNumbers = () => {
@@ -408,7 +465,7 @@ function AssignReviewerModal({ proposal, reviewers, reviewersTotalPages, reviewe
           reviewer={selectedReviewer}
           proposal={proposal}
           onClose={() => setShowConfirmModal(false)}
-          onConfirm={handleConfirmAssignment}
+          onConfirm={onAssign}
         />
       )}
     </>
@@ -432,6 +489,7 @@ export default function AdminProposalDetails({ onLogout, user }) {
   const [error, setError] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showUnassignModal, setShowUnassignModal] = useState(false);
   const [reviewers, setReviewers] = useState([]);
   
   // Reviewer pagination state
@@ -472,7 +530,7 @@ export default function AdminProposalDetails({ onLogout, user }) {
       
       const params = new URLSearchParams();
       params.append("page", page);
-      params.append("limit", 3); // Show 5 reviewers per page
+      params.append("limit", 5);
       params.append("sortBy", "currentWorkload");
       params.append("sortOrder", "asc");
       
@@ -506,12 +564,12 @@ export default function AdminProposalDetails({ onLogout, user }) {
     fetchReviewers(1, searchTerm);
   };
 
-  const handleDeleteProposal = async () => {
+  const handleDeleteProposal = async (projectId) => {
     try {
       const token = localStorage.getItem("token");
       
       await axios.delete(
-        `${API_BASE_URL}/api/admin/projects/id/${id}`,
+        `${API_BASE_URL}/api/admin/projects/id/${projectId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -547,6 +605,33 @@ export default function AdminProposalDetails({ onLogout, user }) {
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Failed to assign reviewer");
+      throw err;
+    }
+  };
+
+  const handleUnassignReviewer = async (projectId) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      const res = await axios.delete(
+        `${API_BASE_URL}/api/admin/projects/${projectId}/unassign-reviewer`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success(res.data?.message || "Reviewer unassigned successfully");
+      setShowUnassignModal(false);
+      
+      // Refresh proposal data
+      const updatedRes = await axios.get(
+        `${API_BASE_URL}/api/admin/projects/id/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProposal(updatedRes.data.data);
+      
+      return res;
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to unassign reviewer");
       throw err;
     }
   };
@@ -601,6 +686,10 @@ export default function AdminProposalDetails({ onLogout, user }) {
 
   const isReviewerAssigned = proposal.assignedReviewerId !== null && proposal.assignedReviewerId !== undefined;
   const canAssignReviewer = proposal.status === "SUBMITTED" && !isReviewerAssigned;
+  const canUnassignReviewer = (proposal.status === "UNDER_REVIEW" || proposal.status === "SUBMITTED") && isReviewerAssigned;
+
+  // Get the project ID from proposal
+  const projectId = proposal.id || proposal._id;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -617,7 +706,7 @@ export default function AdminProposalDetails({ onLogout, user }) {
                   <StatusBadge status={proposal.status} />
                 </div>
                 <p className="text-sm text-gray-500">
-                  <span className="font-mono">Project Code: {proposal.uniqueCode || id?.slice(-8).toUpperCase()}</span>
+                  <span className="font-mono">Project Code: {proposal.uniqueCode || projectId?.slice(-8).toUpperCase()}</span>
                   <span className="mx-2">•</span>
                   <span>Version {proposal.version || 1}</span>
                 </p>
@@ -630,6 +719,15 @@ export default function AdminProposalDetails({ onLogout, user }) {
                   >
                     <UserPlus size={16} />
                     Assign Reviewer
+                  </button>
+                )}
+                {canUnassignReviewer && (
+                  <button
+                    onClick={() => setShowUnassignModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 border border-orange-500 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                  >
+                    <UserMinus size={16} />
+                    Unassign Reviewer
                   </button>
                 )}
                 <button
@@ -838,12 +936,21 @@ export default function AdminProposalDetails({ onLogout, user }) {
                 </div>
               </InfoCard>
 
-              {/* Assigned Reviewer */}
+              {/* Assigned Reviewer with Unassign Button */}
               <InfoCard title="Assigned Reviewer" icon={User}>
                 {isReviewerAssigned ? (
                   <div>
                     <p className="text-sm font-medium text-gray-800">{proposal.assignedReviewerId?.name || "—"}</p>
                     <p className="text-xs text-gray-500">{proposal.assignedReviewerId?.email || "—"}</p>
+                    {canUnassignReviewer && (
+                      <button
+                        onClick={() => setShowUnassignModal(true)}
+                        className="mt-3 flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 transition-colors"
+                      >
+                        <UserMinus size={12} />
+                        Unassign Reviewer
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-4">
@@ -890,6 +997,15 @@ export default function AdminProposalDetails({ onLogout, user }) {
           onSearch={handleReviewerSearch}
           onClose={() => setShowAssignModal(false)}
           onAssign={handleAssignReviewer}
+        />
+      )}
+
+      {showUnassignModal && proposal.assignedReviewerId && (
+        <UnassignReviewerModal
+          proposal={proposal}
+          reviewer={proposal.assignedReviewerId}
+          onClose={() => setShowUnassignModal(false)}
+          onConfirm={handleUnassignReviewer}
         />
       )}
     </div>
