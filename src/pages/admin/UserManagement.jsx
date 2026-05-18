@@ -45,7 +45,7 @@ function TableRowSkeleton() {
   );
 }
 
-// Change Role Modal
+// Change Role Modal// Change Role Modal - ensure expertise is being collected properly
 function ChangeRoleModal({ user, onClose, onUpdate }) {
   const [selectedRole, setSelectedRole] = useState(user.role);
   const [expertise, setExpertise] = useState(user.expertise || []);
@@ -74,15 +74,25 @@ function ChangeRoleModal({ user, onClose, onUpdate }) {
 
   const handleExpertiseChange = (e) => {
     const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+    console.log("Selected expertise in modal:", selectedOptions); // Debug
     setExpertise(selectedOptions);
   };
 
   const handleSubmit = async () => {
+    // Validate expertise for reviewer role
     if (selectedRole === "REVIEWER" && expertise.length === 0) {
       toast.error("Please select at least one expertise area for reviewer");
       return;
     }
+    
     setLoading(true);
+    console.log("Submitting role update:", { 
+      userId: user.id, 
+      role: selectedRole, 
+      expertise: expertise 
+    });
+    
+    // Pass the expertise array to the update function
     await onUpdate(user.id, selectedRole, expertise);
     setLoading(false);
     onClose();
@@ -132,6 +142,11 @@ function ChangeRoleModal({ user, onClose, onUpdate }) {
               <p className="text-xs text-gray-500 mt-1">
                 Hold Ctrl (Windows) or Cmd (Mac) to select multiple
               </p>
+              {expertise.length > 0 && (
+                <div className="mt-2 text-xs text-green-600">
+                  Selected: {expertise.map(e => e.replaceAll("_", " ")).join(", ")}
+                </div>
+              )}
             </div>
           )}
 
@@ -401,45 +416,41 @@ export default function UserManagement({ onLogout, user }) {
   };
 
   const handleUpdateUserRole = async (userId, newRole, expertise) => {
-    try {
-      const token = localStorage.getItem("token");
-      
-      // First update the role
-      const res = await axios.patch(
-        `${API_BASE_URL}/api/admin/id/${userId}/role`,
-        { role: newRole },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      // If role is REVIEWER, also update expertise
-      if (newRole === "REVIEWER" && expertise.length > 0) {
-        await axios.patch(
-          `${API_BASE_URL}/api/admin/id/${userId}/expertise`,
-          { expertise },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+  try {
+    const token = localStorage.getItem("token");
+    
+    // Make sure expertise is always an array
+    const expertiseArray = expertise || [];
+    
+    const res = await axios.patch(
+      `${API_BASE_URL}/api/admin/id/${userId}/role`,
+      { 
+        role: newRole, 
+        expertise: expertiseArray  // Send expertise array
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       }
+    );
 
-      toast.success(res.data?.message || "User role updated successfully");
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, role: newRole, expertise: expertise } : user
-      ));
-      
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Failed to update user role");
-    }
-  };
+    toast.success(res.data?.message || "User role updated successfully");
+    
+    // Update local state with the new role and expertise
+    setUsers(users.map(user => 
+      user.id === userId 
+        ? { ...user, role: newRole, expertise: expertiseArray } 
+        : user
+    ));
+    
+  } catch (err) {
+    console.error("Error updating user role:", err);
+    console.error("Request payload:", { role: newRole, expertise });
+    toast.error(err.response?.data?.message || "Failed to update user role");
+  }
+};
 
   const handleToggleUserStatus = async (userId, currentStatus) => {
     try {
