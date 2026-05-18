@@ -51,7 +51,7 @@ export default function ProposalTypeSelector({
           </div>
 
           <h3 className="text-2xl font-bold text-gray-700 mb-2">
-            Section Projects
+            Sanction Projects
           </h3>
 
           <p className="text-gray-600">
