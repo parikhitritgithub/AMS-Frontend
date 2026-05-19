@@ -6,7 +6,7 @@ import {
   ArrowLeft, CheckCircle, XCircle, Clock, Calendar, User, 
   FileText, DollarSign, Users, TrendingUp, RefreshCw, 
   AlertTriangle, Eye, Trash2, UserPlus, Award, X, 
-  Briefcase, Mail, Star, Search, ChevronLeft, ChevronRight, UserMinus
+  Briefcase, Mail, Star, Search, ChevronLeft, ChevronRight, UserMinus, ExternalLink, List, Maximize2
 } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
@@ -85,6 +85,218 @@ function InfoCard({ title, icon: Icon, children, className = "" }) {
         <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{title}</h3>
       </div>
       {children}
+    </div>
+  );
+}
+
+// Similarity Modal Component
+function SimilarityModal({ matches, onClose, currentProjectTitle }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("score");
+  const [sortOrder, setSortOrder] = useState("desc");
+
+  const filteredMatches = matches.filter(match => 
+    match.projectId?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    match.projectId?.uniqueCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    match.matchedTextPreview?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedMatches = [...filteredMatches].sort((a, b) => {
+    let aVal, bVal;
+    if (sortBy === "score") {
+      aVal = a.score || 0;
+      bVal = b.score || 0;
+    } else if (sortBy === "title") {
+      aVal = (a.projectId?.title || a.matchedTextPreview || "").toLowerCase();
+      bVal = (b.projectId?.title || b.matchedTextPreview || "").toLowerCase();
+    } else if (sortBy === "status") {
+      aVal = a.projectId?.status || "";
+      bVal = b.projectId?.status || "";
+    }
+    if (sortOrder === "asc") {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+
+  const getScoreColor = (score) => {
+    if (score >= 70) return "text-red-600 bg-red-50";
+    if (score >= 40) return "text-yellow-600 bg-yellow-50";
+    return "text-green-600 bg-green-50";
+  };
+
+  const getScoreBackground = (score) => {
+    if (score >= 70) return "bg-red-100 text-red-700";
+    if (score >= 40) return "bg-yellow-100 text-yellow-700";
+    return "bg-green-100 text-green-700";
+  };
+
+  const openInNewTab = (projectId) => {
+    if (projectId) {
+      window.open(`/admin/proposals/${projectId}`, "_blank");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+        {/* Modal Header */}
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Similarity Analysis Details</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Comparing with: <span className="font-semibold">{currentProjectTitle}</span>
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="p-6 border-b border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search */}
+            <div className="relative col-span-2">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by title or project code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            {/* Sort Controls */}
+            <div className="flex gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="score">Sort by Score</option>
+                <option value="title">Sort by Title</option>
+                <option value="status">Sort by Status</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {sortOrder === "asc" ? "↑" : "↓"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Statistics Summary */}
+        <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-blue-700">
+              <strong>{filteredMatches.length}</strong> similar projects found
+              {searchTerm && ` (filtered from ${matches.length})`}
+            </span>
+            <span className="text-blue-600">
+              Highest match: <strong>{Math.max(...matches.map(m => m.score || 0))}%</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Matches List */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {sortedMatches.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <Search size={48} className="mx-auto mb-3 opacity-50" />
+              <p className="text-lg font-medium">No similar projects found</p>
+              <p className="text-sm">Try adjusting your search criteria</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedMatches.map((match, idx) => (
+                <div
+                  key={idx}
+                  className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all bg-white"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-gray-800 text-base">
+                          {match.projectId?.title || match.matchedTextPreview || "Unknown Project"}
+                        </h3>
+                        {match.projectId?._id && (
+                          <button
+                            onClick={() => openInNewTab(match.projectId._id)}
+                            className="text-blue-500 hover:text-blue-700 transition-colors"
+                            title="Open in new tab"
+                          >
+                            <ExternalLink size={14} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-3 text-sm text-gray-500 mt-1">
+                        {match.projectId?.uniqueCode && (
+                          <span className="font-mono">Code: {match.projectId.uniqueCode}</span>
+                        )}
+                        {match.projectId?.discipline && (
+                          <span>Discipline: {match.projectId.discipline.replaceAll("_", " ")}</span>
+                        )}
+                        {match.projectId?.year && (
+                          <span>Year: {match.projectId.year}</span>
+                        )}
+                      </div>
+                      {match.projectId?.status && (
+                        <div className="mt-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            match.projectId.status === "APPROVED" ? "bg-green-100 text-green-800" :
+                            match.projectId.status === "REJECTED" ? "bg-red-100 text-red-800" :
+                            match.projectId.status === "UNDER_REVIEW" ? "bg-blue-100 text-blue-800" :
+                            "bg-gray-100 text-gray-800"
+                          }`}>
+                            Status: {match.projectId.status?.replaceAll("_", " ")}
+                          </span>
+                        </div>
+                      )}
+                      {match.matchedTextPreview && !match.projectId?.title && (
+                        <p className="text-xs text-gray-400 mt-1">External reference: {match.matchedTextPreview}</p>
+                      )}
+                    </div>
+                    <div className="text-right ml-4">
+                      <div className={`inline-flex flex-col items-center px-4 py-2 rounded-xl ${getScoreBackground(match.score)}`}>
+                        <span className="text-2xl font-bold">{Math.round(match.score)}%</span>
+                        <span className="text-xs opacity-75">match</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  {match.projectId?._id && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2">
+                      <button
+                        onClick={() => openInNewTab(match.projectId._id)}
+                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <ExternalLink size={14} />
+                        View Full Proposal
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -490,6 +702,7 @@ export default function AdminProposalDetails({ onLogout, user }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showUnassignModal, setShowUnassignModal] = useState(false);
+  const [showSimilarityModal, setShowSimilarityModal] = useState(false);
   const [reviewers, setReviewers] = useState([]);
   
   // Reviewer pagination state
@@ -901,7 +1114,7 @@ export default function AdminProposalDetails({ onLogout, user }) {
             {/* Right Column - Sidebar */}
             <div className="space-y-4">
               
-              {/* Similarity Analysis */}
+              {/* Similarity Analysis with View All Button */}
               <InfoCard title="Similarity Analysis" icon={TrendingUp}>
                 <div className="text-center">
                   <SimilarityRing score={proposal.similarityScore} />
@@ -921,6 +1134,50 @@ export default function AdminProposalDetails({ onLogout, user }) {
                     </div>
                   )}
                 </div>
+
+                {/* Similar Projects Preview */}
+                {proposal.similarityMatches && proposal.similarityMatches.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-xs font-semibold text-gray-500">
+                        Similar Projects Found ({proposal.similarityMatches.length})
+                      </p>
+                      <button
+                        onClick={() => setShowSimilarityModal(true)}
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+                      >
+                        <Maximize2 size={12} />
+                        View All Details
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {proposal.similarityMatches.slice(0, 3).map((match, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded-lg p-2">
+                          <div className="flex justify-between items-center">
+                            <p className="text-xs font-medium text-gray-700 truncate flex-1">
+                              {match.projectId?.title || match.matchedTextPreview || "Unknown Project"}
+                            </p>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ml-2 ${
+                              match.score >= 70 ? "bg-red-100 text-red-700" :
+                              match.score >= 40 ? "bg-yellow-100 text-yellow-700" :
+                              "bg-green-100 text-green-700"
+                            }`}>
+                              {Math.round(match.score)}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {proposal.similarityMatches.length > 3 && (
+                        <button
+                          onClick={() => setShowSimilarityModal(true)}
+                          className="w-full text-center text-xs text-blue-500 hover:text-blue-700 py-1"
+                        >
+                          + {proposal.similarityMatches.length - 3} more similar projects
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </InfoCard>
 
               {/* Timeline */}
@@ -978,7 +1235,16 @@ export default function AdminProposalDetails({ onLogout, user }) {
         </div>
       </main>
 
-      {/* Modals */}
+      {/* Similarity Modal */}
+      {showSimilarityModal && proposal.similarityMatches && (
+        <SimilarityModal
+          matches={proposal.similarityMatches}
+          onClose={() => setShowSimilarityModal(false)}
+          currentProjectTitle={proposal.title}
+        />
+      )}
+
+      {/* Delete Modal */}
       {showDeleteModal && (
         <DeleteModal
           proposal={proposal}
@@ -987,6 +1253,7 @@ export default function AdminProposalDetails({ onLogout, user }) {
         />
       )}
 
+      {/* Assign Modal */}
       {showAssignModal && (
         <AssignReviewerModal
           proposal={proposal}
@@ -1000,6 +1267,7 @@ export default function AdminProposalDetails({ onLogout, user }) {
         />
       )}
 
+      {/* Unassign Modal */}
       {showUnassignModal && proposal.assignedReviewerId && (
         <UnassignReviewerModal
           proposal={proposal}

@@ -4,7 +4,7 @@ import StatCard from "../../components/common/StatCard";
 import SimilarityBadge from "../../components/proposal/SimilarityBadge";
 import { Search, Filter, List, LayoutGrid, FileStack, Clock, CheckCircle, XCircle, X, Eye, Menu } from "lucide-react";
 import LoadingScreen from "../../components/common/Loadingscreen";
-import ProposalDetails from "../../components/proposal/ProposalDetails";
+import ProposalDetails from "../../components/proposal/ScientistProposalDetails";
 import axios from "axios";
 
 const TABLE_HEADERS = ["Project ID", "Title", "Status", "Similarity", "Submitted", "Discipline"];
