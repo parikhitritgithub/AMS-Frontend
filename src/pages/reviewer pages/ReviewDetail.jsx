@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import ReviewerSidebar from "./ReviewerSidebar";
 import LoadingScreen from "../../components/common/Loadingscreen";
 import toast from "react-hot-toast";
-import { CheckCircle, XCircle, ArrowLeft, AlertTriangle, RefreshCw, Clock, Calendar, User, Mail, Building, Award, FileText, DollarSign, Users, TrendingUp } from "lucide-react";
+import { CheckCircle, XCircle, ArrowLeft, AlertTriangle, RefreshCw, Clock, Calendar, User, FileText, DollarSign, Users, TrendingUp, Maximize2, ExternalLink, Search, X } from "lucide-react";
 import axios from "axios";
 
 // ── Similarity score ring ──────────────────────────────────────────────────
@@ -84,6 +84,181 @@ function TimelineItem({ label, date, icon: Icon, color = "text-gray-500" }) {
   );
 }
 
+// ── Similarity Modal Component (Read-only with view in new tab) ──────────────────
+function SimilarityModal({ matches, onClose, currentProjectTitle }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("score");
+  const [sortOrder, setSortOrder] = useState("desc");
+
+  const filteredMatches = matches.filter(match => 
+    match.projectId?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    match.matchedTextPreview?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedMatches = [...filteredMatches].sort((a, b) => {
+    let aVal, bVal;
+    if (sortBy === "score") {
+      aVal = a.score || 0;
+      bVal = b.score || 0;
+    } else if (sortBy === "title") {
+      aVal = (a.projectId?.title || a.matchedTextPreview || "").toLowerCase();
+      bVal = (b.projectId?.title || b.matchedTextPreview || "").toLowerCase();
+    }
+    if (sortOrder === "asc") {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+
+  const getScoreBackground = (score) => {
+    if (score >= 70) return "bg-red-100 text-red-700";
+    if (score >= 40) return "bg-yellow-100 text-yellow-700";
+    return "bg-green-100 text-green-700";
+  };
+
+  const openInNewTab = (projectId) => {
+    if (projectId) {
+      window.open(`/reviewer/project/${projectId}`, "_blank");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+        {/* Modal Header */}
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Similarity Analysis Details</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Comparing with: <span className="font-semibold">{currentProjectTitle}</span>
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="p-6 border-b border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative col-span-2">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="score">Sort by Score</option>
+                <option value="title">Sort by Title</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {sortOrder === "asc" ? "↑" : "↓"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Statistics Summary */}
+        <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-blue-700">
+              <strong>{filteredMatches.length}</strong> similar projects found
+              {searchTerm && ` (filtered from ${matches.length})`}
+            </span>
+            <span className="text-blue-600">
+              Highest match: <strong>{Math.max(...matches.map(m => m.score || 0))}%</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Matches List - Clickable to open in new tab */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {sortedMatches.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <Search size={48} className="mx-auto mb-3 opacity-50" />
+              <p className="text-lg font-medium">No similar projects found</p>
+              <p className="text-sm">Try adjusting your search criteria</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedMatches.map((match, idx) => (
+                <div
+                  key={idx}
+                  className={`border border-gray-200 rounded-xl p-4 transition-all bg-white ${
+                    match.projectId?._id ? 'cursor-pointer hover:shadow-md hover:border-blue-300' : ''
+                  }`}
+                  onClick={() => match.projectId?._id && openInNewTab(match.projectId._id)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-800 text-base">
+                          {match.projectId?.title || match.matchedTextPreview || "Unknown Project"}
+                        </h3>
+                        {match.projectId?._id && (
+                          <ExternalLink size={14} className="text-blue-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-3 text-sm text-gray-500 mt-1">
+                        {match.projectId?.uniqueCode && (
+                          <span className="font-mono">Code: {match.projectId.uniqueCode}</span>
+                        )}
+                        {match.projectId?.discipline && (
+                          <span>Discipline: {match.projectId.discipline.replaceAll("_", " ")}</span>
+                        )}
+                        {match.projectId?.status && (
+                          <span>Status: {match.projectId.status?.replaceAll("_", " ")}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right ml-4">
+                      <div className={`inline-flex flex-col items-center px-4 py-2 rounded-xl ${getScoreBackground(match.score)}`}>
+                        <span className="text-2xl font-bold">{Math.round(match.score)}%</span>
+                        <span className="text-xs opacity-75">match</span>
+                      </div>
+                    </div>
+                  </div>
+                  {match.projectId?._id && (
+                    <div className="mt-3 pt-2 text-right">
+                      <span className="text-xs text-blue-500 hover:text-blue-700">
+                        Click to view in new tab →
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReviewDetail({ onLogout }) {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -91,12 +266,14 @@ export default function ReviewDetail({ onLogout }) {
   const [project, setProject] = useState(null);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [canSubmitReview, setCanSubmitReview] = useState(false);
+  const [isAssignedToMe, setIsAssignedToMe] = useState(false);
   const [existingReview, setExistingReview] = useState(null);
   const [reviewHistory, setReviewHistory] = useState([]);
   const [timeStats, setTimeStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showSimilarityModal, setShowSimilarityModal] = useState(false);
 
   // ── Fetch project details ────────────────────────────────────────────────
   useEffect(() => {
@@ -112,6 +289,7 @@ export default function ReviewDetail({ onLogout }) {
         setProject(data.project);
         setAlreadyReviewed(data.alreadyReviewed);
         setCanSubmitReview(data.canSubmitReview);
+        setIsAssignedToMe(data.project.isAssignedToCurrentReviewer || data.statusInfo?.isAssignedToMe || false);
         setReviewHistory(data.reviewHistory || []);
         setTimeStats(data.project.timeStats || {});
         
@@ -203,6 +381,7 @@ export default function ReviewDetail({ onLogout }) {
   }
 
   const similarity = project.similarityScore ?? 0;
+  const similarityMatches = project.similarityMatches || [];
 
   return (
     <div className="flex min-h-screen font-sans bg-gray-100">
@@ -216,8 +395,13 @@ export default function ReviewDetail({ onLogout }) {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-xl md:text-2xl font-bold text-gray-800">Review Proposal</h1>
+                  <h1 className="text-xl md:text-2xl font-bold text-gray-800">Proposal Details</h1>
                   <StatusBadge status={project.status} />
+                  {!isAssignedToMe && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                      View Only
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500">
                   <span className="font-mono">Project Code: {project.uniqueCode || project.id?.slice(-8).toUpperCase()}</span>
@@ -237,7 +421,7 @@ export default function ReviewDetail({ onLogout }) {
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {/* Left Column - Proposal Details (2/3 width) */}
+            {/* Left Column - Proposal Details */}
             <div className="lg:col-span-2 space-y-6">
 
               {/* Scientist Info Card */}
@@ -339,64 +523,80 @@ export default function ReviewDetail({ onLogout }) {
                 </div>
               </InfoCard>
 
-              {/* Review Comments Section */}
-              <InfoCard title="Review Comments" icon={MessageSquare}>
-                {alreadyReviewed && existingReview && (
-                  <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm font-medium text-blue-800 mb-1">Previous Review</p>
-                    <p className="text-sm text-blue-700">Decision: <strong>{existingReview.decision?.replaceAll("_", " ")}</strong></p>
-                    <p className="text-sm text-blue-700 mt-1">{existingReview.comment}</p>
-                    <p className="text-xs text-blue-500 mt-1">Reviewed on: {new Date(existingReview.reviewedAt).toLocaleString()}</p>
-                  </div>
-                )}
-                
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={6}
-                  disabled={!canSubmitReview || alreadyReviewed}
-                  placeholder={canSubmitReview ? "Enter your review comments, suggestions, or concerns (minimum 10 characters)" : "This proposal cannot be reviewed at this stage"}
-                  className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400"
-                />
+              {/* Review Comments Section - Only show if assigned */}
+              {isAssignedToMe && (
+                <InfoCard title="Review Comments" icon={MessageSquare}>
+                  {alreadyReviewed && existingReview && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-sm font-medium text-blue-800 mb-1">Previous Review</p>
+                      <p className="text-sm text-blue-700">Decision: <strong>{existingReview.decision?.replaceAll("_", " ")}</strong></p>
+                      <p className="text-sm text-blue-700 mt-1">{existingReview.comment}</p>
+                      <p className="text-xs text-blue-500 mt-1">Reviewed on: {new Date(existingReview.reviewedAt).toLocaleString()}</p>
+                    </div>
+                  )}
+                  
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={6}
+                    disabled={!canSubmitReview || alreadyReviewed}
+                    placeholder={canSubmitReview ? "Enter your review comments, suggestions, or concerns (minimum 10 characters)" : "This proposal cannot be reviewed at this stage"}
+                    className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400"
+                  />
 
-                {canSubmitReview && !alreadyReviewed && (
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <button
-                      onClick={() => handleReview("APPROVED")}
-                      disabled={submitting}
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-                    >
-                      <CheckCircle size={16} /> Approve
-                    </button>
-                    <button
-                      onClick={() => handleReview("REJECTED")}
-                      disabled={submitting}
-                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-                    >
-                      <XCircle size={16} /> Reject
-                    </button>
-                    <button
-                      onClick={() => handleReview("REVISION_REQUIRED")}
-                      disabled={submitting}
-                      className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-                    >
-                      <RefreshCw size={16} /> Request Revision
-                    </button>
-                  </div>
-                )}
+                  {canSubmitReview && !alreadyReviewed && (
+                    <div className="flex flex-wrap gap-3 mt-4">
+                      <button
+                        onClick={() => handleReview("APPROVED")}
+                        disabled={submitting}
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+                      >
+                        <CheckCircle size={16} /> Approve
+                      </button>
+                      <button
+                        onClick={() => handleReview("REJECTED")}
+                        disabled={submitting}
+                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+                      >
+                        <XCircle size={16} /> Reject
+                      </button>
+                      <button
+                        onClick={() => handleReview("REVISION_REQUIRED")}
+                        disabled={submitting}
+                        className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+                      >
+                        <RefreshCw size={16} /> Request Revision
+                      </button>
+                    </div>
+                  )}
 
-                {alreadyReviewed && (
-                  <p className="mt-3 text-xs font-medium text-blue-600">
-                    ✓ You have already reviewed this proposal. Your review has been recorded.
-                  </p>
-                )}
-                
-                {!canSubmitReview && !alreadyReviewed && (
-                  <p className="mt-3 text-xs font-medium text-yellow-600">
-                    ⚠ This proposal cannot be reviewed at its current stage: <strong>{project.status?.replaceAll("_", " ")}</strong>
-                  </p>
-                )}
-              </InfoCard>
+                  {alreadyReviewed && (
+                    <p className="mt-3 text-xs font-medium text-blue-600">
+                      ✓ You have already reviewed this proposal. Your review has been recorded.
+                    </p>
+                  )}
+                  
+                  {!canSubmitReview && !alreadyReviewed && (
+                    <p className="mt-3 text-xs font-medium text-yellow-600">
+                      ⚠ This proposal cannot be reviewed at its current stage: <strong>{project.status?.replaceAll("_", " ")}</strong>
+                    </p>
+                  )}
+                </InfoCard>
+              )}
+
+              {/* View Only Message */}
+              {!isAssignedToMe && (
+                <InfoCard title="Information" icon={InfoIcon}>
+                  <div className="bg-gray-50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-gray-600">
+                      You are viewing this proposal for reference only.
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      This proposal is not assigned to you for review.
+                    </p>
+                  </div>
+                </InfoCard>
+              )}
 
               {/* Review History */}
               {reviewHistory.length > 0 && (
@@ -423,7 +623,7 @@ export default function ReviewDetail({ onLogout }) {
               )}
             </div>
 
-            {/* Right Column - Sidebar (1/3 width) */}
+            {/* Right Column - Sidebar */}
             <div className="space-y-6">
 
               {/* Similarity Analysis Card */}
@@ -446,6 +646,50 @@ export default function ReviewDetail({ onLogout }) {
                     </div>
                   )}
                 </div>
+
+                {/* Similar Projects Preview */}
+                {similarityMatches.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-xs font-semibold text-gray-500">
+                        Similar Projects Found ({similarityMatches.length})
+                      </p>
+                      <button
+                        onClick={() => setShowSimilarityModal(true)}
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+                      >
+                        <Maximize2 size={12} />
+                        View All Details
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {similarityMatches.slice(0, 3).map((match, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded-lg p-2">
+                          <div className="flex justify-between items-center">
+                            <p className="text-xs font-medium text-gray-700 truncate flex-1">
+                              {match.projectId?.title || match.matchedTextPreview || "Unknown Project"}
+                            </p>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ml-2 ${
+                              match.score >= 70 ? "bg-red-100 text-red-700" :
+                              match.score >= 40 ? "bg-yellow-100 text-yellow-700" :
+                              "bg-green-100 text-green-700"
+                            }`}>
+                              {Math.round(match.score)}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {similarityMatches.length > 3 && (
+                        <button
+                          onClick={() => setShowSimilarityModal(true)}
+                          className="w-full text-center text-xs text-blue-500 hover:text-blue-700 py-1"
+                        >
+                          + {similarityMatches.length - 3} more similar projects
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </InfoCard>
 
               {/* Timeline Card */}
@@ -496,11 +740,20 @@ export default function ReviewDetail({ onLogout }) {
           </div>
         </div>
       </main>
+
+      {/* Similarity Modal */}
+      {showSimilarityModal && similarityMatches.length > 0 && (
+        <SimilarityModal
+          matches={similarityMatches}
+          onClose={() => setShowSimilarityModal(false)}
+          currentProjectTitle={project.title}
+        />
+      )}
     </div>
   );
 }
 
-// ── Helper Component ───────────────────────────────────────────────────────
+// ── Helper Components ───────────────────────────────────────────────────────
 function Field({ label, value, className = "" }) {
   return (
     <div className={className}>
@@ -510,7 +763,6 @@ function Field({ label, value, className = "" }) {
   );
 }
 
-// Missing icon component
 function MessageSquare({ size, className }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size || 18} height={size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -525,6 +777,16 @@ function History({ size, className }) {
       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
       <path d="M3 3v5h5"/>
       <path d="M12 7v5l4 2"/>
+    </svg>
+  );
+}
+
+function InfoIcon({ size, className }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size || 18} height={size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
     </svg>
   );
 }
