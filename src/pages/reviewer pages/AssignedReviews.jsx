@@ -7,7 +7,7 @@ import axios from "axios";
 
 // ── Similarity badge (colour-coded) ───────────────────────────────────────
 function SimilarityBadge({ value }) {
-  const pct = Math.round(value ?? 0);
+  const pct = value ?? 0;
   let bg = "bg-green-100 text-green-700";
   if (pct >= 70) bg = "bg-red-100 text-red-700";
   else if (pct >= 40) bg = "bg-yellow-100 text-yellow-700";

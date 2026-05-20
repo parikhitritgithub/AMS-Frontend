@@ -8,7 +8,7 @@ import axios from "axios";
 
 // ── Similarity score ring ──────────────────────────────────────────────────
 function SimilarityRing({ score }) {
-  const pct = Math.min(100, Math.round(score || 0));
+  const pct = Math.min(100, score || 0);
   const radius = 36;
   const circ = 2 * Math.PI * radius;
   const dashLen = (pct / 100) * circ;
@@ -227,7 +227,7 @@ function SimilarityModal({ matches, onClose, currentProjectTitle }) {
                     </div>
                     <div className="text-right ml-4">
                       <div className={`inline-flex flex-col items-center px-4 py-2 rounded-xl ${getScoreBackground(match.score)}`}>
-                        <span className="text-2xl font-bold">{Math.round(match.score)}%</span>
+                        <span className="text-2xl font-bold">{match.score}%</span>
                         <span className="text-xs opacity-75">match</span>
                       </div>
                     </div>
@@ -674,7 +674,7 @@ export default function ReviewDetail({ onLogout }) {
                               match.score >= 40 ? "bg-yellow-100 text-yellow-700" :
                               "bg-green-100 text-green-700"
                             }`}>
-                              {Math.round(match.score)}%
+                              {match.score}%
                             </span>
                           </div>
                         </div>
