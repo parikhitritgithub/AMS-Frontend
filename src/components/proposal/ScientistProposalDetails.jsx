@@ -46,7 +46,7 @@ function SimilarityRing({ score, isDraft }) {
     );
   }
 
-  const pct = Math.min(100, Math.round(score || 0));
+  const pct = Math.min(100, score || 0);
   const radius = 36;
   const circ = 2 * Math.PI * radius;
   const dashLen = (pct / 100) * circ;
