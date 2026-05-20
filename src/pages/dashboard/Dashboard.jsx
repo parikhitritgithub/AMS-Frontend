@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/common/Sidebar";
 import StatCard from "../../components/common/StatCard";
 import SimilarityBadge from "../../components/proposal/SimilarityBadge";
 import { Search, Filter, List, LayoutGrid, FileStack, Clock, CheckCircle, XCircle, X, Eye, Menu } from "lucide-react";
 import LoadingScreen from "../../components/common/Loadingscreen";
-import ProposalDetails from "../../components/proposal/ScientistProposalDetails";
 import axios from "axios";
 
 const TABLE_HEADERS = ["Project ID", "Title", "Status", "Similarity", "Submitted", "Discipline"];
@@ -21,6 +21,8 @@ const STATUS_OPTIONS = [
 ];
 
 export default function Dashboard({ onLogout }) {
+  const navigate = useNavigate();
+  
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -33,10 +35,6 @@ export default function Dashboard({ onLogout }) {
   // Filtering and view
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("list");
-  
-  // Selected proposal for detail view
-  const [selectedProposal, setSelectedProposal] = useState(null);
-  const [proposalLoading, setProposalLoading] = useState(false);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -64,27 +62,9 @@ export default function Dashboard({ onLogout }) {
     fetchDashboard();
   }, []);
 
-  // Fetch full proposal details
-  const fetchProposalDetails = async (id) => {
-    try {
-      setProposalLoading(true);
-      const token = localStorage.getItem("token");
-
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/scientist/project/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setSelectedProposal(response.data);
-    } catch (error) {
-      console.error("Error fetching proposal details:", error);
-    } finally {
-      setProposalLoading(false);
-    }
+  // Navigate to proposal details page
+  const handleViewProposal = (projectId) => {
+    navigate(`/scientist/project/${projectId}`);
   };
 
   // Clear all filters
@@ -118,36 +98,6 @@ export default function Dashboard({ onLogout }) {
 
   // Show loading state
   if (loading) {
-    return (
-      <div className="flex min-h-screen font-sans bg-gray-100">
-        <Sidebar onLogout={onLogout} />
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-sm p-4 md:p-8">
-            <LoadingScreen />
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Show proposal details view
-  if (selectedProposal) {
-    return (
-      <div className="flex min-h-screen font-sans bg-gray-100">
-        <Sidebar onLogout={onLogout} />
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm p-4 md:p-8">
-            <ProposalDetails
-              proposal={selectedProposal}
-              onBack={() => setSelectedProposal(null)}
-            />
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (proposalLoading) {
     return (
       <div className="flex min-h-screen font-sans bg-gray-100">
         <Sidebar onLogout={onLogout} />
@@ -405,7 +355,7 @@ export default function Dashboard({ onLogout }) {
               )}
             </div>
           ) : viewMode === "list" ? (
-            /* List View - Responsive Table with horizontal scroll on mobile */
+            /* List View - Responsive Table */
             <div className="overflow-x-auto -mx-4 md:mx-0">
               <div className="min-w-[600px] md:min-w-0">
                 <table className="w-full text-sm">
@@ -424,7 +374,7 @@ export default function Dashboard({ onLogout }) {
                       <tr 
                         key={p.id} 
                         className="border-b last:border-0 hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => fetchProposalDetails(p.id)}
+                        onClick={() => handleViewProposal(p.id)}
                       >
                         <td className="py-3 pr-3 md:pr-4 text-gray-600 font-medium text-xs md:text-sm">
                           {p.uniqueCode || "N/A"}
@@ -462,7 +412,7 @@ export default function Dashboard({ onLogout }) {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              fetchProposalDetails(p.id);
+                              handleViewProposal(p.id);
                             }}
                             className="p-1 text-blue-500 hover:text-blue-700 transition-colors"
                             title="View Details"
@@ -483,7 +433,7 @@ export default function Dashboard({ onLogout }) {
                 <div 
                   key={p.id} 
                   className="border rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => fetchProposalDetails(p.id)}
+                  onClick={() => handleViewProposal(p.id)}
                 >
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <span className="text-xs font-mono text-gray-500 truncate flex-1">
@@ -523,7 +473,7 @@ export default function Dashboard({ onLogout }) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        fetchProposalDetails(p.id);
+                        handleViewProposal(p.id);
                       }}
                       className="p-1 text-blue-500 hover:text-blue-700 transition-colors"
                       title="View Details"

@@ -13,11 +13,11 @@ function StatusBadge({ status }) {
     UNDER_REVIEW: { label: "Under Review", color: "bg-blue-100 text-blue-700" },
     APPROVED: { label: "Approved", color: "bg-green-100 text-green-700" },
     REJECTED: { label: "Rejected", color: "bg-red-100 text-red-700" },
-    REVISION_REQUIRED: { label: "Revision Required", color: "bg-yellow-100 text-yellow-700" },
+    REVISION_REQUIRED: { label: "Revision Required", color: "bg-orange-100 text-orange-700" },
   };
   const config = statusConfig[status] || { label: status || "Draft", color: "bg-gray-100 text-gray-700" };
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${config.color}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${config.color}`}>
       {config.label}
     </span>
   );
@@ -38,7 +38,7 @@ function SimilarityBadge({ score }) {
   }
   
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${color}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${color}`}>
       {scoreNum}% ({label})
     </span>
   );
@@ -48,12 +48,12 @@ function SimilarityBadge({ score }) {
 function TableRowSkeleton() {
   return (
     <tr className="border-b border-gray-100 animate-pulse">
-      <td className="py-3 px-4"><div className="h-4 w-24 bg-gray-200 rounded"></div></td>
-      <td className="py-3 px-4"><div className="h-4 w-48 bg-gray-200 rounded"></div></td>
-      <td className="py-3 px-4"><div className="h-6 w-20 bg-gray-200 rounded-full"></div></td>
-      <td className="py-3 px-4"><div className="h-6 w-16 bg-gray-200 rounded-full"></div></td>
-      <td className="py-3 px-4"><div className="h-4 w-24 bg-gray-200 rounded"></div></td>
-      <td className="py-3 px-4"><div className="h-8 w-16 bg-gray-200 rounded"></div></td>
+      <td className="py-4 px-6"><div className="h-5 w-28 bg-gray-200 rounded"></div></td>
+      <td className="py-4 px-6"><div className="h-5 w-48 bg-gray-200 rounded"></div></td>
+      <td className="py-4 px-6"><div className="h-6 w-24 bg-gray-200 rounded-full"></div></td>
+      <td className="py-4 px-6"><div className="h-6 w-20 bg-gray-200 rounded-full"></div></td>
+      <td className="py-4 px-6"><div className="h-5 w-24 bg-gray-200 rounded"></div></td>
+      <td className="py-4 px-6"><div className="h-8 w-20 bg-gray-200 rounded"></div></td>
     </tr>
   );
 }
@@ -251,7 +251,7 @@ export default function MyProposals({ onLogout }) {
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Title / Discipline</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Similarity</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted Date</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -284,11 +284,11 @@ export default function MyProposals({ onLogout }) {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="max-w-md">
-                          <p className="text-sm font-medium text-gray-900 truncate" title={proposal.title}>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 truncate max-w-md" title={proposal.title}>
                             {proposal.title}
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">{proposal.discipline?.replaceAll("_", " ") || "—"}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{proposal.discipline?.replaceAll("_", " ") || "—"}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -297,7 +297,7 @@ export default function MyProposals({ onLogout }) {
                       <td className="px-6 py-4">
                         <SimilarityBadge score={proposal.similarityScore} />
                       </td>
-                      <td className="px-6 py-4 text-gray-500 text-sm">
+                      <td className="px-6 py-4 text-gray-500 text-sm whitespace-nowrap">
                         {proposal.createdAt
                           ? new Date(proposal.createdAt).toLocaleDateString("en-IN", {
                               day: "numeric",
@@ -312,10 +312,10 @@ export default function MyProposals({ onLogout }) {
                             e.stopPropagation();
                             handleViewProposal(proposal.id);
                           }}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
                         >
                           <Eye size={14} />
-                          View Details
+                          View
                         </button>
                       </td>
                     </tr>
@@ -331,7 +331,7 @@ export default function MyProposals({ onLogout }) {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1 || loading}
-                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors text-sm font-medium"
               >
                 Previous
               </button>
@@ -355,7 +355,7 @@ export default function MyProposals({ onLogout }) {
               <button
                 onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={currentPage >= totalPages || loading}
-                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors text-sm font-medium"
               >
                 Next
               </button>
