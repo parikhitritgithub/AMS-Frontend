@@ -524,65 +524,69 @@ export default function ReviewDetail({ onLogout }) {
               </InfoCard>
 
               {/* Review Comments Section - Only show if assigned */}
-              {isAssignedToMe && (
-                <InfoCard title="Review Comments" icon={MessageSquare}>
-                  {alreadyReviewed && existingReview && (
-                    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm font-medium text-blue-800 mb-1">Previous Review</p>
-                      <p className="text-sm text-blue-700">Decision: <strong>{existingReview.decision?.replaceAll("_", " ")}</strong></p>
-                      <p className="text-sm text-blue-700 mt-1">{existingReview.comment}</p>
-                      <p className="text-xs text-blue-500 mt-1">Reviewed on: {new Date(existingReview.reviewedAt).toLocaleString()}</p>
-                    </div>
-                  )}
-                  
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    rows={6}
-                    disabled={!canSubmitReview || alreadyReviewed}
-                    placeholder={canSubmitReview ? "Enter your review comments, suggestions, or concerns (minimum 10 characters)" : "This proposal cannot be reviewed at this stage"}
-                    className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400"
-                  />
+             {/* Review Comments Section - Only show if assigned */}
+{isAssignedToMe && (
+  <InfoCard title="Review Comments" icon={MessageSquare}>
+    {alreadyReviewed && existingReview && (
+      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <p className="text-sm font-medium text-blue-800 mb-1">Previous Review</p>
+        <p className="text-sm text-blue-700">Decision: <strong>{existingReview.decision?.replaceAll("_", " ")}</strong></p>
+        <p className="text-sm text-blue-700 mt-1">{existingReview.comment}</p>
+        <p className="text-xs text-blue-500 mt-1">Reviewed on: {new Date(existingReview.reviewedAt).toLocaleString()}</p>
+      </div>
+    )}
+    
+    <textarea
+      value={comment}
+      onChange={(e) => setComment(e.target.value)}
+      rows={6}
+      disabled={!canSubmitReview}
+      placeholder={canSubmitReview ? "Enter your review comments, suggestions, or concerns (minimum 10 characters)" : "This proposal cannot be reviewed at this stage"}
+      className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400"
+    />
 
-                  {canSubmitReview && !alreadyReviewed && (
-                    <div className="flex flex-wrap gap-3 mt-4">
-                      <button
-                        onClick={() => handleReview("APPROVED")}
-                        disabled={submitting}
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-                      >
-                        <CheckCircle size={16} /> Approve
-                      </button>
-                      <button
-                        onClick={() => handleReview("REJECTED")}
-                        disabled={submitting}
-                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-                      >
-                        <XCircle size={16} /> Reject
-                      </button>
-                      <button
-                        onClick={() => handleReview("REVISION_REQUIRED")}
-                        disabled={submitting}
-                        className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-                      >
-                        <RefreshCw size={16} /> Request Revision
-                      </button>
-                    </div>
-                  )}
+    {/* FIXED: Show buttons when canSubmitReview is true, regardless of alreadyReviewed */}
+    {canSubmitReview && (
+      <div className="flex flex-wrap gap-3 mt-4">
+        <button
+          onClick={() => handleReview("APPROVED")}
+          disabled={submitting}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+        >
+          <CheckCircle size={16} /> Approve
+        </button>
+        <button
+          onClick={() => handleReview("REJECTED")}
+          disabled={submitting}
+          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+        >
+          <XCircle size={16} /> Reject
+        </button>
+        <button
+          onClick={() => handleReview("REVISION_REQUIRED")}
+          disabled={submitting}
+          className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+        >
+          <RefreshCw size={16} /> Request Revision
+        </button>
+      </div>
+    )}
 
-                  {alreadyReviewed && (
-                    <p className="mt-3 text-xs font-medium text-blue-600">
-                      ✓ You have already reviewed this proposal. Your review has been recorded.
-                    </p>
-                  )}
-                  
-                  {!canSubmitReview && !alreadyReviewed && (
-                    <p className="mt-3 text-xs font-medium text-yellow-600">
-                      ⚠ This proposal cannot be reviewed at its current stage: <strong>{project.status?.replaceAll("_", " ")}</strong>
-                    </p>
-                  )}
-                </InfoCard>
-              )}
+    {/* Show message when review is submitted (success state) */}
+    {!canSubmitReview && alreadyReviewed && (
+      <p className="mt-3 text-xs font-medium text-green-600">
+        ✓ Review submitted successfully! Thank you for your feedback.
+      </p>
+    )}
+    
+    {/* Show message when cannot review */}
+    {!canSubmitReview && !alreadyReviewed && (
+      <p className="mt-3 text-xs font-medium text-yellow-600">
+        ⚠ This proposal cannot be reviewed at its current stage: <strong>{project.status?.replaceAll("_", " ")}</strong>
+      </p>
+    )}
+  </InfoCard>
+)}
 
               {/* View Only Message */}
               {!isAssignedToMe && (
